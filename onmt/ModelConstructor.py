@@ -88,7 +88,7 @@ def make_morph_embeddings(opt, word_dict, feature_dicts, for_encoder=True):
                       sparse=opt.optim == "sparseadam")
 
 
-def make_encoder(opt, embeddings, title_embeddings, morph_embeddings=None):
+def make_encoder(opt, embeddings, morph_embeddings=None):
     """
     Various encoder dispatcher function.
     Args:
@@ -106,7 +106,6 @@ def make_encoder(opt, embeddings, title_embeddings, morph_embeddings=None):
         return MeanEncoder(opt.enc_layers, embeddings)
     elif opt.encoder_type == "gcn":
         print('use gates = ', opt.gcn_use_gates)
-        # TODO: Title encoder added as RNN encoder - Katja
         return GCNEncoder(embeddings,
                           opt.gcn_num_inputs,
                           opt.gcn_num_units,
@@ -118,10 +117,7 @@ def make_encoder(opt, embeddings, title_embeddings, morph_embeddings=None):
                           opt.gcn_residual,
                           opt.gcn_use_gates,
                           opt.gcn_use_glus,
-                          morph_embeddings),\
-               RNNEncoder(opt.rnn_type, True, opt.enc_layers,
-                   opt.rnn_size, opt.dropout, title_embeddings,
-                   opt.bridge)
+                          morph_embeddings)
     else:
         # "rnn" or "brnn"
         return RNNEncoder(opt.rnn_type, opt.brnn, opt.enc_layers,
@@ -205,26 +201,15 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
         feature_dicts = onmt.io.collect_feature_vocabs(fields, 'src')
         src_embeddings = make_embeddings(model_opt, src_dict,
                                          feature_dicts)
-        title_dict = fields["title"].vocab
-        title_feature_dicts = onmt.io.collect_feature_vocabs(fields, 'title')
-        title_embeddings = make_embeddings(model_opt, title_dict,
-                                           title_feature_dicts)
         if 'morph' in fields:
             if hasattr(fields["morph"], 'vocab'):
                 morph_dict = fields["morph"].vocab
                 morph_embeddings = make_morph_embeddings(model_opt, morph_dict, [])
                 encoder = make_encoder(model_opt, src_embeddings, morph_embeddings)
             else:
-                encoder, title_encoder = make_encoder(model_opt, src_embeddings, title_embeddings)  # gcn features must go here
-        else:
-            if model_opt.encoder_type == 'gcn':
-                #title_dict = fields["title"].vocab
-                #title_feature_dicts = onmt.io.collect_feature_vocabs(fields, 'title')
-                #title_embeddings = make_embeddings(model_opt, title_dict,
-                #                                 title_feature_dicts)
-                encoder, title_encoder = make_encoder(model_opt, src_embeddings, title_embeddings)  # gcn features must go here
-            else:
                 encoder = make_encoder(model_opt, src_embeddings)  # gcn features must go here
+        else:
+            encoder = make_encoder(model_opt, src_embeddings)  # gcn features must go here
     elif model_opt.model_type == "img":
         encoder = ImageEncoder(model_opt.enc_layers,
                                model_opt.brnn,
@@ -257,8 +242,7 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
 
     # Make NMTModel(= encoder + decoder).
     if model_opt.encoder_type == 'gcn':
-        # TODO: Added in title_encoder - Katja
-        model = NMTModelGCN(encoder, title_encoder, decoder)
+        model = NMTModelGCN(encoder, decoder)
     else:
         model = NMTModel(encoder, decoder)
     model.model_type = model_opt.model_type
@@ -297,9 +281,6 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
         if hasattr(model.encoder, 'embeddings'):
             model.encoder.embeddings.load_pretrained_vectors(
                     model_opt.pre_word_vecs_enc, model_opt.fix_word_vecs_enc)
-            #if model_opt.encoder_type == 'gcn':
-            #    model.title_encoder.title_embeddings.load_pretrained_vectors(
-            #        model_opt.pre_word_vecs_enc, model_opt.fix_word_vecs_enc)
         if hasattr(model.decoder, 'embeddings'):
             model.decoder.embeddings.load_pretrained_vectors(
                     model_opt.pre_word_vecs_dec, model_opt.fix_word_vecs_dec)

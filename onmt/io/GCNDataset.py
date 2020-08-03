@@ -16,10 +16,8 @@ from onmt.io.DatasetBase import (ONMTDatasetBase, UNK_WORD,
 
 class GCNDataset(ONMTDatasetBase):
     """ Dataset for data_type=='text'
-
         Build `Example` objects, `Field` objects, and filter_pred function
         from text corpus.
-
         Args:
             fields (dict): a dictionary of `torchtext.data.Field`.
                 Keys are like 'src', 'tgt', 'src_map', and 'alignment'.
@@ -59,9 +57,9 @@ class GCNDataset(ONMTDatasetBase):
                                  zip(src_examples_iter, label_examples_iter, node1_examples_iter,
                                      node2_examples_iter, tgt_examples_iter, title_examples_iter, types_examples_iter))
             else:
-                examples_iter = (self._join_dicts(src, label, node1, node2, tgt, title) for src, label, node1, node2, tgt, title in
+                examples_iter = (self._join_dicts(src, label, node1, node2, tgt) for src, label, node1, node2, tgt in
                                  zip(src_examples_iter, label_examples_iter, node1_examples_iter,
-                                     node2_examples_iter, tgt_examples_iter, title_examples_iter))  # had to delete morph_iter and title, types iters - morph was 0 despite being set to '' above.
+                                     node2_examples_iter, tgt_examples_iter))  # had to delete morph_iter and title, types iters - morph was 0 despite being set to '' above.
 
         else:
             # examples_iter = src_examples_iter
@@ -147,11 +145,10 @@ class GCNDataset(ONMTDatasetBase):
             path (str): location of a src or tgt file.
             truncate (int): maximum sequence length (0 for unlimited).
             side (str): "src" or "tgt".
-
         Returns:
             (example_dict iterator, num_feats) tuple.
         """
-        assert side in ['src', 'tgt', 'label', 'node1', 'node2', 'morph', 'title', 'types']
+        assert side in ['src', 'tgt', 'label', 'node1', 'node2', 'morph']
 
         if path is None:
             return (None, 0)
@@ -177,7 +174,6 @@ class GCNDataset(ONMTDatasetBase):
             path (str): location of a src or tgt file.
             truncate (int): maximum sequence length (0 for unlimited).
             side (str): "src" or "tgt".
-
         Yields:
             (word, features, nfeat) triples for each line.
         """
@@ -205,7 +201,6 @@ class GCNDataset(ONMTDatasetBase):
                 create `torchtext.data.Field` for.
             n_tgt_features (int): the number of target features to
                 create `torchtext.data.Field` for.
-
         Returns:
             A dictionary whose keys are strings and whose values
             are the corresponding Field objects.
@@ -292,11 +287,9 @@ class GCNDataset(ONMTDatasetBase):
         (All lines must have same number of features).
         For text corpus, both sides are in text form, thus
         it works the same.
-
         Args:
             corpus_file (str): file path to get the features.
             side (str): 'src' or 'tgt'.
-
         Returns:
             number of features on `side`.
         """
@@ -323,5 +316,3 @@ class GCNDataset(ONMTDatasetBase):
                     [0] + [src_vocab.stoi[w] for w in tgt] + [0])
                 example["alignment"] = mask
             yield example
-
-

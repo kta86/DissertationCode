@@ -55,7 +55,6 @@ if torch.cuda.is_available() and not opt.gpuid:
 
 if opt.gpuid:
     cuda.set_device(opt.gpuid[0])
-
     if opt.seed > 0:
         torch.cuda.manual_seed(opt.seed)
 

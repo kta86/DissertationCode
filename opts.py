@@ -204,11 +204,11 @@ def preprocess_opts(parser):
 
     # Truncation options, for text corpus
     group = parser.add_argument_group('Pruning')
-    group.add_argument('-src_seq_length', type=int, default=600, # Increased due to size difference between WebNLG and AGENDA
+    group.add_argument('-src_seq_length', type=int, default=500, # Increased due to size difference between WebNLG and AGENDA
                        help="Maximum source sequence length")
     group.add_argument('-src_seq_length_trunc', type=int, default=0,
                        help="Truncate source sequence length.")
-    group.add_argument('-tgt_seq_length', type=int, default=600, # Increased due to size difference between WebNLG and AGENDA
+    group.add_argument('-tgt_seq_length', type=int, default=500, # Increased due to size difference between WebNLG and AGENDA
                        help="Maximum target sequence length to keep.")
     group.add_argument('-tgt_seq_length_trunc', type=int, default=0,
                        help="Truncate target sequence length.")
@@ -440,8 +440,6 @@ def translate_opts(parser):
     group.add_argument('-src',   required=True,
                        help="""Source sequence to decode (one line per
                        sequence)""")
-    group.add_argument('-title', required=True,
-                       help="Path to the test title data")
     group.add_argument('-src_label', required=False,
                        help="Path to the test source data gcn")
     group.add_argument('-src_node1', required=False,

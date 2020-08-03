@@ -176,6 +176,7 @@ def build_save_text_dataset_in_shards_gcn(src_corpus, tgt_corpus,
         title_corpus, opt.src_seq_length_trunc,
         "title", opt.max_shard_size,
                 assoc_iter=src_iter)
+    print("title: ", title_iter)
     types_iter = onmt.io.ShardedTextCorpusIterator(
         types_corpus, opt.src_seq_length_trunc,
         "types", opt.max_shard_size,
@@ -218,6 +219,7 @@ def build_save_dataset(corpus_type, fields, opt):
 
     if corpus_type == 'train':
         src_corpus = opt.train_src
+        print(src_corpus)
         tgt_corpus = opt.train_tgt
     else:
         src_corpus = opt.valid_src

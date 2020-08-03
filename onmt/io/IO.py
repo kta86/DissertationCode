@@ -132,7 +132,7 @@ def make_features(batch, side, data_type='text'):
         A sequence of src/tgt tensors with optional feature tensors
         of size (len x batch).
     """
-    assert side in ['src', 'tgt', 'title']
+    assert side in ['src', 'tgt']
     if isinstance(batch.__dict__[side], tuple):
         data = batch.__dict__[side][0]
     else:
@@ -292,7 +292,7 @@ def collect_feature_vocabs(fields, side):
     """
     Collect feature Vocab objects from Field object.
     """
-    assert side in ['src', 'tgt', 'title']
+    assert side in ['src', 'tgt']
     feature_vocabs = []
     for j in count():
         key = side + "_feat_" + str(j)
@@ -350,7 +350,7 @@ def build_dataset(fields, data_type, src_path, tgt_path, src_dir=None,
     return dataset
 
 
-def build_dataset_gcn(fields, data_type, src_path, title_path, tgt_path,
+def build_dataset_gcn(fields, data_type, src_path, tgt_path,
                   label_path, node1_path, node2_path, morph_path, src_dir=None,
                   src_seq_length=0, tgt_seq_length=0,
                   src_seq_length_trunc=0, tgt_seq_length_trunc=0,
@@ -388,14 +388,6 @@ def build_dataset_gcn(fields, data_type, src_path, title_path, tgt_path,
                                   src_seq_length_trunc, sample_rate,
                                   window_size, window_stride,
                                   window, normalize_audio)
-
-    # Added in title - Katja
-    title_examples_iter, num_title_feats = \
-            _make_examples_nfeats_tpl(data_type+"_title", title_path, src_dir,
-                                  src_seq_length_trunc, sample_rate,
-                                  window_size, window_stride,
-                                  window, normalize_audio)
-
     morph_examples_iter = ''
     if morph_path !='':
         morph_examples_iter, num_morph_feats = \
@@ -407,7 +399,7 @@ def build_dataset_gcn(fields, data_type, src_path, title_path, tgt_path,
     dataset = GCNDataset(
                 fields, src_examples_iter, tgt_examples_iter,
                 label_examples_iter, node1_examples_iter,
-                node2_examples_iter, title_examples_iter, morph_examples_iter,
+                node2_examples_iter, morph_examples_iter,
                 num_src_feats, num_tgt_feats,
                 src_seq_length=src_seq_length,
                 tgt_seq_length=tgt_seq_length,

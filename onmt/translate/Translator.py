@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 from torch.autograd import Variable
 
 import onmt.translate.Beam
@@ -63,6 +62,9 @@ class Translator(object):
            batch (:obj:`Batch`): a batch from a dataset object
            data (:obj:`Dataset`): the dataset object
 
+
+        Todo:
+           Shouldn't need the original dataset.
         """
 
         # (0) Prep each of the components of the search.
@@ -94,19 +96,15 @@ class Translator(object):
 
         # (1) Run the encoder on the src.
         src = onmt.io.make_features(batch, 'src', data_type)
-        title = onmt.io.make_features(batch, 'title', data_type)
         src_lengths = None
-        title_lengths = None
         if data_type == 'text':
             _, src_lengths = batch.src
         elif data_type == 'gcn':
-            _, title_lengths = batch.title
             _, src_lengths = batch.src
             # report_stats.n_src_words += src_lengths.sum()
             adj_arc_in, adj_arc_out, adj_lab_in, adj_lab_out, \
             mask_in, mask_out, mask_loop, mask_sent = onmt.io.get_adj(batch)
             if hasattr(batch, 'morph'):
-                print("has attr morph")
                 morph, mask_morph = onmt.io.get_morph(batch)  # [b,t, max_morph]
 
         if data_type == 'gcn':
@@ -123,47 +121,22 @@ class Translator(object):
                                adj_arc_in, adj_arc_out, adj_lab_in,
                                adj_lab_out, mask_in, mask_out,
                                mask_loop, mask_sent)
-                # Todo Changed here by Katja to include the title and title memory bank
-                title_enc_states, title_memory_bank = \
-                    self.model.title_encoder(title, title_lengths)
-                '''
-                Added in the final layer of the title memory bank for the dual encoder
-                '''
-                t = nn.Tanh()
-                memory = torch.cat(
-                    [title_memory_bank[title_memory_bank.shape[0] - 1].view(1, enc_states[0].shape[1], -1),
-                     title_memory_bank[title_memory_bank.shape[0] - 1].view(1, enc_states[1].shape[1], -1)])
-                proja = torch.cat([enc_states[0], memory], dim=2)
-                projb = torch.cat([enc_states[1], memory], dim=2)
-                proja = t(proja)
-                projb = t(projb)
-                proja = self.model.dual_encoder[0](proja)
-                projb = self.model.dual_encoder[1](projb)
-
-                dual_final = tuple([proja, projb])
-
         else:
             enc_states, memory_bank = self.model.encoder(src, src_lengths)
 
         dec_states = self.model.decoder.init_decoder_state(
-                                        src, memory_bank, dual_final, title, title_memory_bank)
+                                        src, memory_bank, enc_states)
 
         if src_lengths is None:
             src_lengths = torch.Tensor(batch_size).type_as(memory_bank.data)\
                                                   .long()\
                                                   .fill_(memory_bank.size(0))
-        if title_lengths is None:
-            title_lengths = torch.Tensor(batch_size).type_as(title_memory_bank.data)\
-                                                  .long()\
-                                                  .fill_(title_memory_bank.size(0))
 
         # (2) Repeat src objects `beam_size` times.
         src_map = rvar(batch.src_map.data) \
             if (data_type == 'text' or data_type == 'gcn') and self.copy_attn else None
         memory_bank = rvar(memory_bank.data)
         memory_lengths = src_lengths.repeat(beam_size)
-        title_memory_bank = rvar(title_memory_bank.data)
-        title_memory_lengths = title_lengths.repeat(beam_size)
         dec_states.repeat_beam_size_times(beam_size)
 
         # (3) run the decoder to generate sentences, using beam search.
@@ -188,7 +161,7 @@ class Translator(object):
 
             # Run one step.
             dec_out, dec_states, attn = self.model.decoder(
-                inp, memory_bank, title_memory_bank, dec_states, memory_lengths=memory_lengths, title_memory_lengths=title_memory_lengths)
+                inp, memory_bank, dec_states, memory_lengths=memory_lengths)
             dec_out = dec_out.squeeze(0)
             # dec_out: beam x rnn_size
 
@@ -245,7 +218,6 @@ class Translator(object):
         if data_type == 'text':
             _, src_lengths = batch.src
         elif data_type == 'gcn':
-            _, title_lengths = batch.title
             _, src_lengths = batch.src
             # report_stats.n_src_words += src_lengths.sum()
             adj_arc_in, adj_arc_out, adj_lab_in, adj_lab_out, \
@@ -255,7 +227,6 @@ class Translator(object):
         else:
             src_lengths = None
         src = onmt.io.make_features(batch, 'src', data_type)
-        title = onmt.io.make_features(batch, 'title', data_type)
         tgt_in = onmt.io.make_features(batch, 'tgt')[:-1]
 
         #  (1) run the encoder on the src
@@ -273,43 +244,25 @@ class Translator(object):
                                adj_arc_in, adj_arc_out, adj_lab_in,
                                adj_lab_out, mask_in, mask_out,
                                mask_loop, mask_sent)
-                # Todo Changed here by Katja to include title and title memory bank
-                title_enc_states, title_memory_bank = \
-                    self.model.title_encoder(title, title_lengths)
-                '''
-                Added in the final layer of the memory for the dual encoder
-                '''
-                t = nn.Tanh()
-                memory = torch.cat(
-                    [title_memory_bank[title_memory_bank.shape[0] - 1].view(1, enc_states[0].shape[1], -1),
-                     title_memory_bank[title_memory_bank.shape[0] - 1].view(1, enc_states[1].shape[1], -1)])
-                proja = torch.cat([enc_states[0], memory], dim=2)
-                projb = torch.cat([enc_states[1], memory], dim=2)
-                proja = t(proja)
-                projb = t(projb)
-                proja = self.model.dual_encoder[0](proja)
-                projb = self.model.dual_encoder[1](projb)
 
-                dual_final = tuple([proja, projb])
         else:
             enc_states, memory_bank = self.model.encoder(src, src_lengths)
-
-        dec_states = self.model.decoder.init_decoder_state(
-                                        src, memory_bank, dual_final, title, title_memory_bank)
+        dec_states = \
+            self.model.decoder.init_decoder_state(src, memory_bank, enc_states)
 
         #  (2) if a target is specified, compute the 'goldScore'
         #  (i.e. log likelihood) of the target under the model
         tt = torch.cuda if self.cuda else torch
         gold_scores = tt.FloatTensor(batch.batch_size,1).fill_(0)
         dec_out, _, attn = self.model.decoder(
-            tgt_in, memory_bank, title_memory_bank, dec_states, memory_lengths=src_lengths, title_memory_lengths=title_lengths)
+            tgt_in, memory_bank, dec_states, memory_lengths=src_lengths)
 
         tgt_pad = self.fields["tgt"].vocab.stoi[onmt.io.PAD_WORD]
         for dec, tgt in zip(dec_out, batch.tgt[1:].data):
             # Log prob of each word.
             if self.copy_attn:
-                out = self.model.generator.forward(dec, attn["copy"][2], src_map=batch.src_map)
-            else:
+                out = self.model.generator.forward(dec, attn["copy"][-1], src_map=batch.src_map)
+            if not self.copy_attn:
                 out = self.model.generator.forward(dec)
             tgt = tgt.unsqueeze(1)
             scores = out.data.gather(1, tgt)

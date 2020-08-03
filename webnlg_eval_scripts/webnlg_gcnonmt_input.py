@@ -19,9 +19,8 @@ from spacy.lang.en import English
 # import webnlg_baseline_input as BASE_PREPROCESS
 
 
-UNSEEN_CATEGORIES = ['Science']
+UNSEEN_CATEGORIES = ['Athlete', 'Artist', 'MeanOfTransportation', 'CelestialBody', 'Politician']
 SEEN_CATEGORIES = ['Science']
-# ['Athlete', 'Artist', 'MeanOfTransportation', 'CelestialBody', 'Politician']
 # ['Astronaut', 'Building', 'Monument', 'University', 'SportsTeam',
 # 'WrittenWork', 'Food', 'ComicsCharacter', 'Airport', 'City', 'Science']
 
@@ -152,6 +151,7 @@ def create_source_target(b, options, dataset, delex=True, relex=False, doCategor
     :param options: string "delex" or "notdelex" to label files
     :param dataset: dataset part: train, dev, test
     :param delex: boolean; perform delexicalisation or not
+    TODO:update parapms
     :return: if delex True, return list of replacement dictionaries for each example
     """
     source_out = []
@@ -183,6 +183,7 @@ def create_source_target(b, options, dataset, delex=True, relex=False, doCategor
 
                 properties_objects[triple.p] = triple.o
             # triples = triples.replace('_', ' ').replace('"', '')
+            # separate punct signs from text [[- not doing atm to test things - Katja
             out_src = ''.join(triples)  # [[ re.split('(\W)', ]] deleted - Katja
             out_trg = ''.join(tokenize(lex.lex))  # [[ re.split('(\W)', ]] replaced by tokenize - Katja
             if delex:
@@ -282,7 +283,7 @@ def input_files(path, filepath=None, relex=False, parts=['train', 'dev'],
     for part in parts:
         for option in options:
             if part.startswith('test'):
-                files = select_files(path + part, size=(1,11))
+                files = select_files(path + part, size=0)
             else:
                 files = select_files(path + part, size=(1, 11))
             b = Benchmark()

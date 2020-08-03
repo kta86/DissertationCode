@@ -3,9 +3,9 @@
 
 RNN_SIZE=256
 EMB_SIZE=256
-RNN_LAYERS=2
+RNN_LAYERS=1
 GCN_SIZE=256
-GCN_LAYERS=1
+GCN_LAYERS=5
 EPOCHS=20
 
 CUDA_VISIBLE_DEVICES=0 python train.py \
@@ -24,6 +24,5 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
 	-gcn_in_arcs -gcn_out_arcs \
 	-gcn_num_layers ${GCN_LAYERS} \
 	-gcn_num_labels 5 \
-	-copy_attn \
-	-pre_word_vecs_dec data/gcn_exp.embeddings.dec.pt \
 	-gpuid 0
+

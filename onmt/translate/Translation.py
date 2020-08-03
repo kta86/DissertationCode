@@ -79,7 +79,6 @@ class TranslationBuilder(object):
                 src_vocab = self.data.src_vocabs[inds[b]] \
                   if self.data.src_vocabs else None
                 src_raw = self.data.examples[inds[b]].src
-                title = self.data.examples[inds[b]].title
             else:
                 src_vocab = None
                 src_raw = None
@@ -98,7 +97,7 @@ class TranslationBuilder(object):
             translation = Translation(src[:, b] if src is not None else None,
                                       src_raw, pred_sents,
                                       attn[b], pred_score[b], gold_sent,
-                                      gold_score[b], title)
+                                      gold_score[b])
             translations.append(translation)
 
         return translations
@@ -120,7 +119,7 @@ class Translation(object):
 
     """
     def __init__(self, src, src_raw, pred_sents,
-                 attn, pred_scores, tgt_sent, gold_score, title):
+                 attn, pred_scores, tgt_sent, gold_score):
         self.src = src
         self.src_raw = src_raw
         self.pred_sents = pred_sents
@@ -128,14 +127,12 @@ class Translation(object):
         self.pred_scores = pred_scores
         self.gold_sent = tgt_sent
         self.gold_score = gold_score
-        self.title = title
 
     def log(self, sent_number):
         """
         Log translation to stdout.
         """
         output = '\nSENT {}: {}\n'.format(sent_number, self.src_raw)
-        output += 'TITLE {}: {}\n'.format(sent_number, self.title)
 
         best_pred = self.pred_sents[0]
         best_score = self.pred_scores[0]

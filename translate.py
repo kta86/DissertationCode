@@ -71,7 +71,7 @@ def main():
     # Test data
     if opt.data_type == 'gcn':
         data = onmt.io.build_dataset_gcn(fields, opt.data_type,
-                                 opt.src, opt.title, opt.tgt, opt.src_label,
+                                 opt.src, opt.tgt, opt.src_label,
                                  opt.src_node1, opt.src_node2,
                                  opt.src_morph,
                                  src_dir=opt.src_dir,

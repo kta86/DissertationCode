@@ -214,11 +214,9 @@ class Trainer(object):
             self.valid_loss.cur_dataset = cur_dataset
 
             src = onmt.io.make_features(batch, 'src', self.data_type)
-            title = onmt.io.make_features(batch, 'title', self.data_type)
             if self.data_type == 'text':
                 _, src_lengths = batch.src
             elif self.data_type == 'gcn':
-                _, title_lengths = batch.title
                 _, src_lengths = batch.src
                 # report_stats.n_src_words += src_lengths.sum()
                 adj_arc_in, adj_arc_out, adj_lab_in, adj_lab_out, \
@@ -240,7 +238,7 @@ class Trainer(object):
                                mask_loop, mask_sent, morph, mask_morph)
                 else:
                     outputs, attns, dec_state = \
-                        self.model(src, tgt,  title, src_lengths, title_lengths,
+                        self.model(src, tgt, src_lengths,
                                    adj_arc_in, adj_arc_out, adj_lab_in,
                                    adj_lab_out, mask_in, mask_out,
                                    mask_loop, mask_sent)
@@ -311,13 +309,10 @@ class Trainer(object):
 
             dec_state = None
             src = onmt.io.make_features(batch, 'src', self.data_type)
-            # TODO: Created "title" features - Katja
-            title = onmt.io.make_features(batch, 'title', self.data_type)
             if self.data_type == 'text':
                 _, src_lengths = batch.src
                 report_stats.n_src_words += src_lengths.sum()
             elif self.data_type == 'gcn':
-                _, title_lengths = batch.title
                 _, src_lengths = batch.src
                 report_stats.n_src_words += src_lengths.sum()
                 adj_arc_in, adj_arc_out, adj_lab_in, adj_lab_out, \
@@ -349,9 +344,8 @@ class Trainer(object):
                                    adj_lab_out, mask_in, mask_out,
                                    mask_loop, mask_sent, morph, mask_morph)
                     else:
-                        # TODO: Added title and title_lengths - Katja
                         outputs, attns, dec_state = \
-                            self.model(src, tgt, title, src_lengths, title_lengths,
+                            self.model(src, tgt, src_lengths,
                                        adj_arc_in, adj_arc_out, adj_lab_in,
                                        adj_lab_out, mask_in, mask_out,
                                        mask_loop, mask_sent)

@@ -9,6 +9,8 @@ from collections import defaultdict
 from benchmark_reader import Benchmark
 
 
+# TODO: I comment out the corpus shuffling here, BUT need to refactor better for gcn
+
 def select_files(topdir, category='', size=(1, 10)):  # delete size???
     """
     Collect all xml files from a benchmark directory.
@@ -214,13 +216,13 @@ def relexicalise(predfile, rplc_list, fileid, part='dev', lowercased=True):
 def input_files(path, filepath=None, relex=False):
     """
     Read the corpus, write train and dev files.
-    :param path: directory with the WebNLG benchmark [- agenda dataset added - Katja]
+    :param path: directory with the WebNLG benchmark [- now with AGENDA - Katja]
     :param filepath: path to the prediction file with sentences (for relexicalisation)
     :param relex: boolean; do relexicalisation or not
     :return:
     """
     rplc_list_dev_delex = None
-    parts = [ 'dev']
+    parts = ['train', 'dev']
     options = ['all-delex', 'all-notdelex']  # generate files with/without delexicalisation
     for part in parts:
         for option in options:

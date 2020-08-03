@@ -47,7 +47,6 @@ class EncoderBase(nn.Module):
           E-->F
           E-->G
     """
-
     def _check_args(self, input, lengths=None, hidden=None):
         s_len, n_batch, n_feats = input.size()
         if lengths is not None:
@@ -78,7 +77,6 @@ class MeanEncoder(EncoderBase):
        num_layers (int): number of replicated layers
        embeddings (:obj:`onmt.modules.Embeddings`): embedding module to use
     """
-
     def __init__(self, num_layers, embeddings):
         super(MeanEncoder, self).__init__()
         self.num_layers = num_layers
@@ -108,7 +106,6 @@ class RNNEncoder(EncoderBase):
        dropout (float) : dropout value for :obj:`nn.Dropout`
        embeddings (:obj:`onmt.modules.Embeddings`): embedding module to use
     """
-
     def __init__(self, rnn_type, bidirectional, num_layers,
                  hidden_size, dropout=0.0, embeddings=None,
                  use_bridge=False):
@@ -146,7 +143,7 @@ class RNNEncoder(EncoderBase):
         if lengths is not None and not self.no_pack_padded_seq:
             # Lengths data is wrapped inside a Variable.
             lengths = lengths.view(-1).tolist()
-            packed_emb = pack(emb, lengths, enforce_sorted=False)
+            packed_emb = pack(emb, lengths)
 
         memory_bank, encoder_final = self.rnn(packed_emb, encoder_state)
 
@@ -176,7 +173,6 @@ class RNNEncoder(EncoderBase):
         """
         Forward hidden state through bridge
         """
-
         def bottle_hidden(linear, states):
             """
             Transform from 3D to 2D, apply linear and return initial size
@@ -193,6 +189,7 @@ class RNNEncoder(EncoderBase):
         return outs
 
 
+
 class GCNEncoder(EncoderBase):
     """ A generic recurrent neural network encoder.
 
@@ -205,7 +202,6 @@ class GCNEncoder(EncoderBase):
        dropout (float) : dropout value for :obj:`nn.Dropout`
        embeddings (:obj:`onmt.modules.Embeddings`): embedding module to use
     """
-
     def __init__(self, embeddings,
                  num_inputs, num_units,
                  num_labels,
@@ -226,9 +222,10 @@ class GCNEncoder(EncoderBase):
         self.use_gates = use_gates
         self.use_glus = use_glus
 
+
         if morph_embeddings is not None:
             self.morph_embeddings = morph_embeddings
-            self.emb_morph_emb = nn.Linear(num_inputs + morph_embeddings.embedding_size, num_inputs)
+            self.emb_morph_emb = nn.Linear(num_inputs+morph_embeddings.embedding_size, num_inputs)
 
         self.H_1 = torch.nn.parameter.Parameter(torch.Tensor(self.num_units, self.num_units))
         nn.init.xavier_normal_(self.H_1)  # Changing from nn.init.xavier_normal() as it is deprecated - Katja
@@ -260,6 +257,11 @@ class GCNEncoder(EncoderBase):
 
             self.gcn_seq = nn.Sequential(*self.gcn_layers)
 
+
+
+
+
+
     def forward(self, src, lengths=None, arc_tensor_in=None, arc_tensor_out=None,
                 label_tensor_in=None, label_tensor_out=None,
                 mask_in=None, mask_out=None,  # batch* t, degree
@@ -283,31 +285,33 @@ class GCNEncoder(EncoderBase):
 
             embeddings = torch.nn.functional.relu(self.emb_morph_emb(embeddings))
 
+
+
         if self.residual == '':
 
             for g, gcn in enumerate(self.gcn_layers):
                 if g == 0:
                     memory_bank = gcn(embeddings, lengths, arc_tensor_in, arc_tensor_out,
-                                      label_tensor_in, label_tensor_out,
-                                      mask_in, mask_out,
-                                      mask_loop, sent_mask)  # [t, b, h]
+                                                 label_tensor_in, label_tensor_out,
+                                                 mask_in, mask_out,
+                                                 mask_loop, sent_mask)  # [t, b, h]
 
                 else:
                     memory_bank = gcn(memory_bank, lengths, arc_tensor_in, arc_tensor_out,
-                                      label_tensor_in, label_tensor_out,
-                                      mask_in, mask_out,
-                                      mask_loop, sent_mask)  # [t, b, h]
+                                                 label_tensor_in, label_tensor_out,
+                                                 mask_in, mask_out,
+                                                 mask_loop, sent_mask)  # [t, b, h]
         elif self.residual == 'residual':
 
             for g, gcn in enumerate(self.gcn_layers):
                 if g == 0:
                     memory_bank = gcn(embeddings, lengths, arc_tensor_in, arc_tensor_out,
-                                      label_tensor_in, label_tensor_out,
-                                      mask_in, mask_out,
-                                      mask_loop, sent_mask)  # [t, b, h]
+                                                 label_tensor_in, label_tensor_out,
+                                                 mask_in, mask_out,
+                                                 mask_loop, sent_mask)  # [t, b, h]
 
                 elif g == 1:
-                    prev_memory_bank = embeddings + memory_bank
+                    prev_memory_bank = embeddings+memory_bank
                     memory_bank = gcn(prev_memory_bank, lengths, arc_tensor_in, arc_tensor_out,
                                       label_tensor_in, label_tensor_out,
                                       mask_in, mask_out,
@@ -316,17 +320,17 @@ class GCNEncoder(EncoderBase):
                 else:
                     prev_memory_bank = prev_memory_bank + memory_bank
                     memory_bank = gcn(prev_memory_bank, lengths, arc_tensor_in, arc_tensor_out,
-                                      label_tensor_in, label_tensor_out,
-                                      mask_in, mask_out,
-                                      mask_loop, sent_mask)  # [t, b, h]
+                                                 label_tensor_in, label_tensor_out,
+                                                 mask_in, mask_out,
+                                                 mask_loop, sent_mask)  # [t, b, h]
 
         elif self.residual == 'dense':
             for g, gcn in enumerate(self.gcn_layers):
                 if g == 0:
                     memory_bank = gcn(embeddings, lengths, arc_tensor_in, arc_tensor_out,
-                                      label_tensor_in, label_tensor_out,
-                                      mask_in, mask_out,
-                                      mask_loop, sent_mask)  # [t, b, h]
+                                                 label_tensor_in, label_tensor_out,
+                                                 mask_in, mask_out,
+                                                 mask_loop, sent_mask)  # [t, b, h]
 
                 elif g == 1:
                     prev_memory_bank = torch.cat([embeddings, memory_bank], dim=2)
@@ -338,9 +342,11 @@ class GCNEncoder(EncoderBase):
                 else:
                     prev_memory_bank = torch.cat([prev_memory_bank, memory_bank], dim=2)
                     memory_bank = gcn(prev_memory_bank, lengths, arc_tensor_in, arc_tensor_out,
-                                      label_tensor_in, label_tensor_out,
-                                      mask_in, mask_out,
-                                      mask_loop, sent_mask)  # [t, b, h]
+                                                 label_tensor_in, label_tensor_out,
+                                                 mask_in, mask_out,
+                                                 mask_loop, sent_mask)  # [t, b, h]
+
+
 
         batch_size = memory_bank.size()[1]
         result_ = memory_bank.permute(2, 1, 0)  # [h,b,t]
@@ -406,11 +412,10 @@ class RNNDecoderBase(nn.Module):
        dropout (float) : dropout value for :obj:`nn.Dropout`
        embeddings (:obj:`onmt.modules.Embeddings`): embedding module to use
     """
-
     def __init__(self, rnn_type, bidirectional_encoder, num_layers,
                  hidden_size, attn_type="general",
                  coverage_attn=False, context_gate=None,
-                 copy_attn=False, dropout=0.0, embeddings=None, title_embeddings=None,
+                 copy_attn=False, dropout=0.0, embeddings=None,
                  reuse_copy_attn=False):
         super(RNNDecoderBase, self).__init__()
 
@@ -420,7 +425,6 @@ class RNNDecoderBase(nn.Module):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.embeddings = embeddings
-        self.title_embeddings = title_embeddings
         self.dropout = nn.Dropout(dropout)
 
         # Build the RNN.
@@ -444,14 +448,6 @@ class RNNDecoderBase(nn.Module):
             hidden_size, coverage=coverage_attn,
             attn_type=attn_type
         )
-        #print("hidden size= ", hidden_size)
-
-        self.title_attn = onmt.modules.GlobalAttention(
-            hidden_size, coverage=coverage_attn,
-            attn_type=attn_type
-        )
-
-        self.proj_title_graph_attn = nn.Linear(2 * hidden_size, hidden_size, bias=False)
 
         # Set up a separated copy attention layer, if needed.
         self._copy = False
@@ -463,14 +459,13 @@ class RNNDecoderBase(nn.Module):
             self._copy = True
         self._reuse_copy_attn = reuse_copy_attn
 
-    def forward(self, tgt, memory_bank, title_memory_bank, state, memory_lengths=None, title_memory_lengths=None):
+    def forward(self, tgt, memory_bank, state, memory_lengths=None):
         """
         Args:
             tgt (`LongTensor`): sequences of padded tokens
                                 `[tgt_len x batch x nfeats]`.
             memory_bank (`FloatTensor`): vectors from the encoder
                  `[src_len x batch x hidden]`.
-            title_memory_bank:
             state (:obj:`onmt.Models.DecoderState`):
                  decoder state object to initialize the decoder
             memory_lengths (`LongTensor`): the padded source lengths
@@ -489,11 +484,10 @@ class RNNDecoderBase(nn.Module):
         _, memory_batch, _ = memory_bank.size()
         aeq(tgt_batch, memory_batch)
         # END
-        # print("state: ", state.shape)
-        # print("RNNDecoderState: ", RNNDecoderState.shape)
+
         # Run the forward pass of the RNN.
         decoder_final, decoder_outputs, attns = self._run_forward_pass(
-            tgt, memory_bank, title_memory_bank, state, memory_lengths=memory_lengths, title_memory_lengths=title_memory_lengths)
+            tgt, memory_bank, state, memory_lengths=memory_lengths)
 
         # Update the state with the result.
         final_output = decoder_outputs[-1]
@@ -509,7 +503,7 @@ class RNNDecoderBase(nn.Module):
 
         return decoder_outputs, state, attns
 
-    def init_decoder_state(self, src, memory_bank, dual_final, title, title_memory_bank):
+    def init_decoder_state(self, src, memory_bank, encoder_final):
         def _fix_enc_hidden(h):
             # The encoder hidden is  (layers*directions) x batch x dim.
             # We need to convert it to layers x batch x (directions*dim).
@@ -517,15 +511,13 @@ class RNNDecoderBase(nn.Module):
                 h = torch.cat([h[0:h.size(0):2], h[1:h.size(0):2]], 2)
             return h
 
-        # TODO: Included dual_final not enc_final - Katja
-        if isinstance(dual_final, tuple):  # LSTM
-            enc_final_hidden = [_fix_enc_hidden(enc_hid)
-                                for enc_hid in dual_final]
+        if isinstance(encoder_final, tuple):  # LSTM
             return RNNDecoderState(self.hidden_size,
-                                   tuple(enc_final_hidden))
+                                   tuple([_fix_enc_hidden(enc_hid)
+                                         for enc_hid in encoder_final]))
         else:  # GRU
             return RNNDecoderState(self.hidden_size,
-                                   _fix_enc_hidden(dual_final))
+                                   _fix_enc_hidden(encoder_final))
 
 
 class StdRNNDecoder(RNNDecoderBase):
@@ -543,7 +535,6 @@ class StdRNNDecoder(RNNDecoderBase):
     Implemented without input_feeding and currently with no `coverage_attn`
     or `copy_attn` support.
     """
-
     def _run_forward_pass(self, tgt, memory_bank, state, memory_lengths=None):
         """
         Private helper for running the specific RNN forward pass.
@@ -584,7 +575,7 @@ class StdRNNDecoder(RNNDecoderBase):
         aeq(tgt_batch, output_batch)
         # END
 
-        # Calculate the attention
+        # Calculate the attention.
         decoder_outputs, p_attn = self.attn(
             rnn_output.transpose(0, 1).contiguous(),
             memory_bank.transpose(0, 1),
@@ -644,7 +635,7 @@ class InputFeedRNNDecoder(RNNDecoderBase):
           G --> H
     """
 
-    def _run_forward_pass(self, tgt, memory_bank, title_memory_bank, state, memory_lengths=None, title_memory_lengths=None):
+    def _run_forward_pass(self, tgt, memory_bank, state, memory_lengths=None):
         """
         See StdRNNDecoder._run_forward_pass() for description
         of arguments and return values.
@@ -659,20 +650,15 @@ class InputFeedRNNDecoder(RNNDecoderBase):
         # Initialize local and return variables.
         decoder_outputs = []
         attns = {"std": []}
-        #title_attns = {"std": []}
         if self._copy:
             attns["copy"] = []
-            #title_attns["copy"] = []
         if self._coverage:
             attns["coverage"] = []
-            #title_attns["coverage"] = []
 
         emb = self.embeddings(tgt)
         assert emb.dim() == 3  # len x batch x embedding_dim
 
         hidden = state.hidden
-        # print("hidden 0: ", hidden[0].shape)
-        # print("hidden 1: ", hidden[1].shape)
         coverage = state.coverage.squeeze(0) \
             if state.coverage is not None else None
 
@@ -693,16 +679,7 @@ class InputFeedRNNDecoder(RNNDecoderBase):
                 decoder_output = self.context_gate(
                     decoder_input, rnn_output, decoder_output
                 )
-
-            title_decoder_output, p_title_attn = self.title_attn(
-                rnn_output,
-                title_memory_bank.transpose(0, 1),
-                memory_lengths=title_memory_lengths)
-
-            # TODO: project title_decoder_output and decoder_output Katja
-
-            # decoder_output = self.dropout(decoder_output)
-            decoder_output = self.dropout(self.proj_title_graph_attn(torch.cat([decoder_output, title_decoder_output], dim=-1)))
+            decoder_output = self.dropout(decoder_output)
             input_feed = decoder_output
 
             decoder_outputs += [decoder_output]
@@ -727,7 +704,7 @@ class InputFeedRNNDecoder(RNNDecoderBase):
     def _build_rnn(self, rnn_type, input_size,
                    hidden_size, num_layers, dropout):
         assert not rnn_type == "SRU", "SRU doesn't support input feed! " \
-                                      "Please set -input_feed 0!"
+                "Please set -input_feed 0!"
         if rnn_type == "LSTM":
             stacked_cell = onmt.modules.StackedLSTM
         else:
@@ -753,7 +730,6 @@ class NMTModel(nn.Module):
       decoder (:obj:`RNNDecoderBase`): a decoder object
       multi<gpu (bool): setup for multigpu support
     """
-
     def __init__(self, encoder, decoder, multigpu=False):
         self.multigpu = multigpu
         super(NMTModel, self).__init__()
@@ -808,28 +784,13 @@ class NMTModelGCN(nn.Module):
       decoder (:obj:`RNNDecoderBase`): a decoder object
       multi<gpu (bool): setup for multigpu support
     """
-
-    def __init__(self, encoder, title_encoder, decoder, multigpu=False):
+    def __init__(self, encoder, decoder, multigpu=False):
         self.multigpu = multigpu
         super(NMTModelGCN, self).__init__()
         self.encoder = encoder
-        self.title_encoder = title_encoder
         self.decoder = decoder
 
-        # TODO apply linear transformation for dual encoder - CUDA hardcoded to ensure correct running - Katja
-        # [ directions x batch x [256; 128] -> directions x batch x [256] ]
-
-        # 1. convert (squeeze): batch x directions x [256;128] -> batch x directions*[256;128]
-        # 2. project apply nn.Linear
-        # 3. convert back (unsqueeze):  directions x batch x [256]
-        self.dual_encoder = [
-            nn.Linear(encoder.num_units + encoder.num_units,
-                      encoder.num_units, bias=False).to('cuda:0' if torch.cuda.is_available() else 'cpu'),
-            nn.Linear(encoder.num_units + encoder.num_units,
-                      encoder.num_units, bias=False).to('cuda:0' if torch.cuda.is_available() else 'cpu')]
-
-
-    def forward(self, src, tgt, title, lengths, title_lengths, adj_arc_in, adj_arc_out, adj_lab_in,
+    def forward(self, src, tgt, lengths, adj_arc_in, adj_arc_out, adj_lab_in,
                 adj_lab_out, mask_in, mask_out, mask_loop, mask_sent, morph=None,
                 mask_morph=None, dec_state=None):
         """Forward propagate a `src` and `tgt` pair for training.
@@ -854,42 +815,21 @@ class NMTModelGCN(nn.Module):
         """
         tgt = tgt[:-1]  # exclude last target from inputs
 
-        # ([2,batch_size,hidden_size], [2,batch_size,hidden_size]), [seq_length, batch_size, hidden_size]
         enc_final, memory_bank = self.encoder(src, lengths, adj_arc_in, adj_arc_out,
                                               adj_lab_in, adj_lab_out,
                                               mask_in, mask_out, mask_loop, mask_sent, morph, mask_morph)
-
-        # print(enc_final)
-        # 1 = single LSTM
-        # ([1,batch_size,hidden_size], [1,batch_size,hidden_size]), [seq_length, batch_size, hidden_size]
-        title_enc_final, title_memory_bank = self.title_encoder(title, title_lengths)
-
-        # TODO: concatenate the last hidden state of title memory bank with encoder final - Katja
-        t = nn.Tanh()
-        memory = torch.cat([title_memory_bank[title_memory_bank.shape[0] - 1].view(1, enc_final[0].shape[1], -1),
-                            title_memory_bank[title_memory_bank.shape[0] - 1].view(1, enc_final[1].shape[1], -1)])
-        proja = torch.cat([enc_final[0], memory], dim=2)
-        projb = torch.cat([enc_final[1], memory], dim=2)
-        proja = t(proja)
-        projb = t(projb)
-        proja = self.dual_encoder[0](proja)
-        projb = self.dual_encoder[1](projb)
-        dual_final = tuple([proja, projb])
-
-
         enc_state = \
-            self.decoder.init_decoder_state(src, memory_bank, dual_final, title, title_memory_bank)
+            self.decoder.init_decoder_state(src, memory_bank, enc_final)
         decoder_outputs, dec_state, attns = \
-            self.decoder(tgt, memory_bank, title_memory_bank,
+            self.decoder(tgt, memory_bank,
                          enc_state if dec_state is None
                          else dec_state,
-                         memory_lengths=lengths, title_memory_lengths=title_lengths)
+                         memory_lengths=lengths)
         if self.multigpu:
             # Not yet supported on multi-gpu
             dec_state = None
             attns = None
         return decoder_outputs, attns, dec_state
-
 
 class DecoderState(object):
     """Interface for grouping together the current state of a recurrent
@@ -899,7 +839,6 @@ class DecoderState(object):
 
     Modules need to implement this to utilize beam search decoding.
     """
-
     def detach(self):
         for h in self._all:
             if h is not None:
